@@ -42,6 +42,8 @@ class CompanyController extends Controller
 
     public function show(Company $company): JsonResponse
     {
+        $company->load(['contacts', 'deals']);
+
         return response()->json([
             'data' => new CompanyResource($company),
         ]);

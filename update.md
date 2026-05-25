@@ -1,6 +1,6 @@
 # Start CRM Progress Update
 
-Date: 2026-05-25
+Date: 2026-05-26
 
 ## Summary
 
@@ -12,14 +12,22 @@ Current backend foundation is working:
 nginx -> php-fpm -> Laravel -> PostgreSQL
 ```
 
-The project already has two connected CRM entities:
+The project now has four connected CRM entities:
 
 ```text
 Company
   has many Contacts
+  has many Deals
 
 Contact
   belongs to Company
+
+Deal
+  belongs to Company
+  has many Tasks
+
+Task
+  belongs to Deal
 ```
 
 ## Infrastructure Progress
@@ -62,6 +70,11 @@ Contact
 - Eloquent relationships.
 - Eager loading.
 - N+1 query problem.
+- PHP backed enums.
+- Eloquent enum casts.
+- Feature tests.
+- Model factories.
+- `RefreshDatabase`.
 
 ## Company API
 
@@ -153,6 +166,142 @@ Example contact response:
 }
 ```
 
+## Deal API
+
+Implemented the `Deal` CRM entity.
+
+Files created/updated:
+
+- `app/app/Enums/DealStatus.php`
+- `app/app/Models/Deal.php`
+- `app/app/Http/Controllers/DealController.php`
+- `app/app/Http/Requests/IndexDealRequest.php`
+- `app/app/Http/Requests/StoreDealRequest.php`
+- `app/app/Http/Requests/UpdateDealRequest.php`
+- `app/app/Http/Resources/DealResource.php`
+- `app/database/migrations/*_create_deals_table.php`
+- `app/routes/api.php`
+
+Implemented features:
+
+- Create deal.
+- List deals.
+- Show single deal.
+- Update deal.
+- Delete deal.
+- Link deal to company through `company_id`.
+- Return nested company data in deal API responses.
+- Return nested tasks in single deal responses.
+- Filter deals by `status`.
+- Filter deals by `company_id`.
+- Validate deal status through `DealStatus` enum.
+- Cast deal status to `DealStatus` inside the Eloquent model.
+
+Available endpoints:
+
+```text
+GET    /api/deals
+POST   /api/deals
+GET    /api/deals/{deal}
+PATCH  /api/deals/{deal}
+PUT    /api/deals/{deal}
+DELETE /api/deals/{deal}
+```
+
+Supported deal statuses:
+
+```text
+new
+in_progress
+won
+lost
+```
+
+## Task API
+
+Implemented the `Task` CRM entity.
+
+Files created/updated:
+
+- `app/app/Enums/TaskStatus.php`
+- `app/app/Models/Task.php`
+- `app/app/Http/Controllers/TaskController.php`
+- `app/app/Http/Requests/IndexTaskRequest.php`
+- `app/app/Http/Requests/StoreTaskRequest.php`
+- `app/app/Http/Requests/UpdateTaskRequest.php`
+- `app/app/Http/Resources/TaskResource.php`
+- `app/database/migrations/*_create_tasks_table.php`
+- `app/routes/api.php`
+
+Implemented features:
+
+- Create task.
+- List tasks.
+- Show single task.
+- Update task.
+- Delete task.
+- Link task to deal through `deal_id`.
+- Return nested deal data in task API responses.
+- Filter tasks by `status`.
+- Filter tasks by `deal_id`.
+- Validate task status through `TaskStatus` enum.
+- Cast task status to `TaskStatus` inside the Eloquent model.
+
+Available endpoints:
+
+```text
+GET    /api/tasks
+POST   /api/tasks
+GET    /api/tasks/{task}
+PATCH  /api/tasks/{task}
+PUT    /api/tasks/{task}
+DELETE /api/tasks/{task}
+```
+
+Supported task statuses:
+
+```text
+todo
+in_progress
+done
+canceled
+```
+
+## Test Coverage
+
+Added feature tests for the core CRM API.
+
+Test files:
+
+- `app/tests/Feature/CompanyApiTest.php`
+- `app/tests/Feature/ContactApiTest.php`
+- `app/tests/Feature/DealApiTest.php`
+- `app/tests/Feature/TaskApiTest.php`
+
+Factories added:
+
+- `app/database/factories/CompanyFactory.php`
+- `app/database/factories/ContactFactory.php`
+- `app/database/factories/DealFactory.php`
+- `app/database/factories/TaskFactory.php`
+
+Latest full test run:
+
+```text
+Tests: 19 passed
+Assertions: 182
+```
+
+Covered scenarios:
+
+- paginated list responses;
+- create endpoints;
+- required validation;
+- enum validation;
+- filtering by status;
+- filtering by relation id;
+- nested relation responses.
+
 ## Important Learning Notes
 
 Laravel chooses controller actions by HTTP method and URL:
@@ -193,18 +342,46 @@ This gradually builds SQL and executes it only on terminal methods such as:
 - `count()`;
 - `exists()`.
 
-## Next Steps
+Enum usage:
 
-1. Update `GET /api/companies/{company}` to return company contacts.
-2. Add `Deal` entity.
-3. Connect deals to companies.
-4. Add deal statuses.
-5. Add `Task` entity.
-6. Start building a more complete CRM domain:
-
-```text
-Company -> Contact
-Company -> Deal
-Deal -> Task
+```php
+Rule::in(DealStatus::values())
 ```
 
+keeps validation rules in sync with one source of truth.
+
+Eloquent enum casts:
+
+```php
+'status' => DealStatus::class
+```
+
+make `$deal->status` a `DealStatus` object inside the application while API resources still return plain strings:
+
+```php
+'status' => $this->status->value
+```
+
+Feature tests use `RefreshDatabase`, so each test starts from a clean database state.
+
+## Next Steps
+
+1. Add ownership to CRM entities:
+   - `owner_id` on `companies`;
+   - later `owner_id` on `deals` and `tasks`.
+2. Connect CRM data to `User`.
+3. Update factories and tests for ownership.
+4. Add Laravel Sanctum authentication.
+5. Protect API routes.
+6. Add policies:
+   - admin sees all;
+   - manager sees own data.
+7. Start React frontend after backend ownership/auth basics.
+
+Current domain shape:
+
+```text
+Company -> Contacts
+Company -> Deals
+Deal -> Tasks
+```

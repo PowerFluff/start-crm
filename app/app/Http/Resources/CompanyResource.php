@@ -2,6 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Http\Resources\ContactResource;
+use App\Http\Resources\DealResource;
+
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +20,8 @@ class CompanyResource extends JsonResource
             'name' => $this->name,
             'website' => $this->website,
             'phone' => $this->phone,
+            'contacts' => ContactResource::collection($this->whenLoaded('contacts')),
+            'deals' => DealResource::collection($this->whenLoaded('deals')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
