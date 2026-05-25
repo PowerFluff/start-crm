@@ -16,10 +16,11 @@ class CompanyController extends Controller
         $search = request()->string('search')->toString();
 
         $companies = Company::query()
+            ->with('owner')
             ->search($search)
             ->latest()
             ->paginate(10);
-
+        
         return response()->json([
             'data' => CompanyResource::collection($companies),
             'meta' => [
@@ -33,7 +34,11 @@ class CompanyController extends Controller
 
     public function store(StoreCompanyRequest $request): JsonResponse
     {
-        $company = Company::query()->create($request->validated());
+        $company = $request->user()->companies()->create(
+            $request->safe()->except('owner_id')
+        );
+
+        $company->load('owner');
 
         return response()->json([
             'data' => new CompanyResource($company),
@@ -42,7 +47,7 @@ class CompanyController extends Controller
 
     public function show(Company $company): JsonResponse
     {
-        $company->load(['contacts', 'deals']);
+        $company->load(['owner', 'contacts', 'deals']);
 
         return response()->json([
             'data' => new CompanyResource($company),

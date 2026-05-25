@@ -7,6 +7,9 @@ use App\Models\Company;
 use App\Models\Deal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+
 
 class DealApiTest extends TestCase
 {
@@ -14,6 +17,8 @@ class DealApiTest extends TestCase
 
     public function test_it_returns_paginated_deals_list(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         Deal::factory()->count(3)->create();
 
         $response = $this->getJson('/api/deals');
@@ -45,6 +50,8 @@ class DealApiTest extends TestCase
 
     public function test_it_creates_deal(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $company = Company::factory()->create();
 
         $response = $this->postJson('/api/deals', [
@@ -70,6 +77,8 @@ class DealApiTest extends TestCase
 
     public function test_it_validates_deal_status(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $company = Company::factory()->create();
 
         $response = $this->postJson('/api/deals', [
@@ -86,6 +95,8 @@ class DealApiTest extends TestCase
 
     public function test_it_filters_deals_by_status(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         Deal::factory()->create([
             'status' => DealStatus::New->value,
         ]);

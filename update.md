@@ -75,6 +75,10 @@ Task
 - Feature tests.
 - Model factories.
 - `RefreshDatabase`.
+- Laravel Sanctum token authentication.
+- Bearer tokens.
+- Protected API routes.
+- Basic ownership through `owner_id`.
 
 ## Company API
 
@@ -99,6 +103,9 @@ Implemented features:
 - Delete company.
 - Paginated company list.
 - Search by `name`, `website`, and `phone`.
+- Optional owner relation through `owner_id`.
+- Automatic company owner assignment from the authenticated user on create.
+- Owner data in company API responses when loaded.
 
 Available endpoints:
 
@@ -273,6 +280,7 @@ Added feature tests for the core CRM API.
 
 Test files:
 
+- `app/tests/Feature/AuthProtectionTest.php`
 - `app/tests/Feature/CompanyApiTest.php`
 - `app/tests/Feature/ContactApiTest.php`
 - `app/tests/Feature/DealApiTest.php`
@@ -288,8 +296,7 @@ Factories added:
 Latest full test run:
 
 ```text
-Tests: 19 passed
-Assertions: 182
+All feature tests were green after adding Sanctum protection and ownership changes.
 ```
 
 Covered scenarios:
@@ -301,6 +308,80 @@ Covered scenarios:
 - filtering by status;
 - filtering by relation id;
 - nested relation responses.
+- authenticated CRM API access;
+- unauthenticated CRM API protection.
+
+## Authentication
+
+Added Sanctum token authentication for the API.
+
+Files created/updated:
+
+- `app/app/Http/Controllers/AuthController.php`
+- `app/app/Models/User.php`
+- `app/routes/api.php`
+
+Implemented endpoints:
+
+```text
+POST /api/register
+POST /api/login
+POST /api/logout
+GET  /api/user
+```
+
+Authentication behavior:
+
+- `register` creates a user and returns a token.
+- `login` validates credentials and returns a token.
+- `logout` deletes the current access token.
+- `/api/user` returns the authenticated user.
+- CRM resource routes are protected by `auth:sanctum`.
+
+Protected routes:
+
+```text
+GET    /api/companies
+POST   /api/companies
+GET    /api/contacts
+POST   /api/contacts
+GET    /api/deals
+POST   /api/deals
+GET    /api/tasks
+POST   /api/tasks
+```
+
+Requests without a valid Bearer token now return:
+
+```text
+401 Unauthorized
+```
+
+## Ownership
+
+Started connecting CRM data to users.
+
+Implemented so far:
+
+- added nullable `owner_id` to `companies`;
+- added `Company belongsTo User` as `owner`;
+- added `User hasMany Company`;
+- updated `CompanyResource` to expose `owner_id` and nested `owner`;
+- updated `CompanyFactory` to create an owner by default;
+- changed company creation so `owner_id` comes from the authenticated user.
+
+Current rule:
+
+```text
+Authenticated user creates company
+  -> company.owner_id = auth user id
+```
+
+Important note:
+
+```text
+The API no longer trusts client-provided owner_id for company creation.
+```
 
 ## Important Learning Notes
 
@@ -364,19 +445,35 @@ make `$deal->status` a `DealStatus` object inside the application while API reso
 
 Feature tests use `RefreshDatabase`, so each test starts from a clean database state.
 
+Sanctum testing:
+
+```php
+Sanctum::actingAs(User::factory()->create());
+```
+
+sets the authenticated user for feature tests.
+
+Protected route groups:
+
+```php
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('companies', CompanyController::class);
+    Route::apiResource('contacts', ContactController::class);
+    Route::apiResource('deals', DealController::class);
+    Route::apiResource('tasks', TaskController::class);
+});
+```
+
 ## Next Steps
 
-1. Add ownership to CRM entities:
-   - `owner_id` on `companies`;
-   - later `owner_id` on `deals` and `tasks`.
-2. Connect CRM data to `User`.
-3. Update factories and tests for ownership.
-4. Add Laravel Sanctum authentication.
-5. Protect API routes.
-6. Add policies:
+1. Restrict company lists to the authenticated user's own companies.
+2. Add admin/manager roles.
+3. Add policies:
    - admin sees all;
    - manager sees own data.
-7. Start React frontend after backend ownership/auth basics.
+4. Add `owner_id` to `deals` and `tasks` if needed by the CRM rules.
+5. Add auth tests for register, login, logout, and `/api/user`.
+6. Start React frontend after backend ownership/auth basics.
 
 Current domain shape:
 

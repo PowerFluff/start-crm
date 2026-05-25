@@ -18,6 +18,7 @@ class UpdateCompanyRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'owner_id' => ['nullable', 'integer', 'exists:users,id'],
             'website' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
         ];

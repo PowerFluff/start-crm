@@ -6,6 +6,8 @@ use App\Models\Company;
 use App\Models\Contact;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
 
 class ContactApiTest extends TestCase
 {
@@ -13,6 +15,8 @@ class ContactApiTest extends TestCase
 
     public function test_it_returns_paginated_contacts_list(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         Contact::factory()->count(3)->create();
 
         $response = $this->getJson('/api/contacts');
@@ -45,6 +49,8 @@ class ContactApiTest extends TestCase
 
     public function test_it_creates_contact(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $company = Company::factory()->create();
 
         $response = $this->postJson('/api/contacts', [
@@ -68,6 +74,8 @@ class ContactApiTest extends TestCase
 
     public function test_it_validates_required_contact_fields(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $response = $this->postJson('/api/contacts', [
             'email' => 'invalid@example.com',
         ]);
@@ -79,6 +87,8 @@ class ContactApiTest extends TestCase
 
     public function test_it_returns_contact_with_company(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $company = Company::factory()->create([
             'name' => 'Acme Inc',
         ]);

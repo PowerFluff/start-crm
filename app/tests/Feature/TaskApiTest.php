@@ -7,6 +7,8 @@ use App\Models\Deal;
 use App\Models\Task;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
 
 class TaskApiTest extends TestCase
 {
@@ -14,6 +16,8 @@ class TaskApiTest extends TestCase
 
     public function test_it_returns_paginated_tasks_list(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         Task::factory()->count(3)->create();
 
         $response = $this->getJson('/api/tasks');
@@ -45,6 +49,8 @@ class TaskApiTest extends TestCase
 
     public function test_it_creates_task(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $deal = Deal::factory()->create();
 
         $response = $this->postJson('/api/tasks', [
@@ -70,6 +76,8 @@ class TaskApiTest extends TestCase
 
     public function test_it_validates_task_status(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $deal = Deal::factory()->create();
 
         $response = $this->postJson('/api/tasks', [
@@ -85,6 +93,8 @@ class TaskApiTest extends TestCase
 
     public function test_it_filters_tasks_by_status(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         Task::factory()->create([
             'status' => TaskStatus::Todo->value,
         ]);
@@ -103,6 +113,8 @@ class TaskApiTest extends TestCase
 
     public function test_it_filters_tasks_by_deal(): void
     {
+        Sanctum::actingAs(User::factory()->create());
+
         $targetDeal = Deal::factory()->create();
         $otherDeal = Deal::factory()->create();
 
