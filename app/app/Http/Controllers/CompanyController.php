@@ -8,19 +8,22 @@ use App\Http\Resources\CompanyResource;
 
 use App\Models\Company;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
 
 class CompanyController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $search = request()->string('search')->toString();
-
-        $companies = Company::query()
+        $search = $request->string('search')->toString();
+    
+        $companies = $request->user()
+            ->companies()
             ->with('owner')
             ->search($search)
             ->latest()
             ->paginate(10);
-        
+    
         return response()->json([
             'data' => CompanyResource::collection($companies),
             'meta' => [
@@ -45,8 +48,10 @@ class CompanyController extends Controller
         ], 201);
     }
 
-    public function show(Company $company): JsonResponse
+    public function show(Request $request, Company $company): JsonResponse
     {
+        $this->authorize('view', $company);
+
         $company->load(['owner', 'contacts', 'deals']);
 
         return response()->json([
@@ -56,6 +61,8 @@ class CompanyController extends Controller
 
     public function update(UpdateCompanyRequest $request, Company $company): JsonResponse
     {
+        $this->authorize('update', $company);
+
         $company->update($request->validated());
 
         return response()->json([
@@ -63,8 +70,10 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function destroy(Company $company): JsonResponse
+    public function destroy(Request $request, Company $company): JsonResponse
     {
+        $this->authorize('delete', $company);
+
         $company->delete();
 
         return response()->json(status: 204);

@@ -12,7 +12,11 @@ class ClientController extends Controller
 {
     public function index(): JsonResponse
     {
+
+        $search = request()->string('search')->toString();
+
         $clients = Client::query()
+            ->search($search)
             ->latest()
             ->paginate(10);
 
